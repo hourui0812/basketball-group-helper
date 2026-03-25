@@ -1461,27 +1461,26 @@ window.doSplit = function() {
 };
 
 function splitBalanced() {
+  // 按能力总分降序排列
   const sorted = [...players].sort((a,b) => calcScore(b)-calcScore(a));
   const teams  = [[],[],[]];
-  const order  = [];
-  let i = 0, dir = 1;
-  while (order.length < sorted.length) {
-    order.push(i);
-    if (i === 2) dir = -1;
-    if (i === 0 && order.length > 1) dir = 1;
-    i += dir;
+
+  // 标准蛇形分配：0,1,2,2,1,0,0,1,2,...
+  // 每轮6人：前3正序(0→1→2)，后3倒序(2→1→0)
+  for (let idx = 0; idx < sorted.length; idx++) {
+    const posInCycle = idx % 6;
+    const col = posInCycle < 3 ? posInCycle : 5 - posInCycle;
+    teams[col].push(sorted[idx]);
   }
-  sorted.forEach((p,idx) => { if (idx < order.length) teams[order[idx]].push(p); });
+
   return teams.map((m,i) => ({ name:['A队','B队','C队'][i], members:m, captain:m[0] }));
 }
 function splitRandom() {
   const sh = [...players].sort(() => Math.random()-0.5);
-  const sz = Math.ceil(sh.length/3);
-  return [
-    { name:'A队', members:sh.slice(0,sz),    captain:sh[0] },
-    { name:'B队', members:sh.slice(sz,sz*2), captain:sh[sz] },
-    { name:'C队', members:sh.slice(sz*2),    captain:sh[sz*2] },
-  ];
+  // 轮询分配保证每队人数差≤1
+  const t = [[],[],[]];
+  sh.forEach((p,i) => t[i%3].push(p));
+  return t.map((m,i) => ({ name:['A队','B队','C队'][i], members:m, captain:m[0] }));
 }
 function splitCaptainRandom() {
   const capIds = ['cap-a','cap-b','cap-c'].map(id => document.getElementById(id).value);
