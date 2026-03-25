@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏀 篮球分队助手</title>
+  <style>
+    /* ══════════════════ Reset & Base ══════════════════ */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      color: #e0e0e0;
+    }
+
+    /* ══════════════════ Status Bar ══════════════════ */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 20px;
+      background: rgba(0,0,0,0.35);
+      font-size: 0.78rem;
+      gap: 10px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .user-info { display: flex; align-items: center; gap: 8px; }
+    .user-avatar {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: linear-gradient(135deg, #f7b733, #fc4a1a);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 800; color: #fff; flex-shrink: 0;
+    }
+    .username { color: #f7b733; font-weight: 700; }
+    .change-name {
+      color: #666; cursor: pointer; font-size: 0.72rem;
+      text-decoration: underline; transition: color 0.2s;
+    }
+    .change-name:hover { color: #f7b733; }
+
+    .conn-status { display: flex; align-items: center; gap: 5px; }
+    .conn-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      display: inline-block; flex-shrink: 0;
+    }
+    .conn-dot.online    { background: #00d2a0; box-shadow: 0 0 6px rgba(0,210,160,0.6); }
+    .conn-dot.offline   { background: #ff6b6b; }
+    .conn-dot.connecting { background: #f7b733; animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .conn-label { color: #888; font-size: 0.78rem; }
+
+    /* ══════════════════ Header ══════════════════ */
+    header {
+      text-align: center;
+      padding: 22px 20px 14px;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    header h1 {
+      font-size: 1.9rem; font-weight: 800;
+      background: linear-gradient(90deg, #f7b733, #fc4a1a);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: 2px;
+    }
+    header p { color: #888; margin-top: 5px; font-size: 0.85rem; }
+
+    /* ══════════════════ Container & Tabs ══════════════════ */
+    .container { max-width: 1100px; margin: 0 auto; padding: 20px 16px; }
+
+    .tabs {
+      display: flex; gap: 6px; margin-bottom: 22px;
+      background: rgba(255,255,255,0.05); border-radius: 12px; padding: 5px;
+    }
+    .tab-btn {
+      flex: 1; padding: 9px 8px; border: none; border-radius: 8px;
+      cursor: pointer; font-size: 0.88rem; font-weight: 600;
+      color: #888; background: transparent; transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #f7b733, #fc4a1a); color: #fff;
+      box-shadow: 0 3px 12px rgba(247,183,51,0.35);
+    }
+    .tab-btn:hover:not(.active) { color: #ddd; background: rgba(255,255,255,0.08); }
+    .tab-panel { display: none; animation: fadeIn 0.2s ease; }
+    .tab-panel.active { display: block; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+
+    /* ══════════════════ Cards ══════════════════ */
+    .card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 22px; margin-bottom: 18px;
+    }
+    .card h2 {
+      font-size: 1.05rem; font-weight: 700; margin-bottom: 16px;
+      color: #f7b733; display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ══════════════════ Form Elements ══════════════════ */
+    .form-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(155px,1fr));
+      gap: 12px; margin-bottom: 14px;
+    }
+    .form-group label { display: block; font-size: 0.78rem; color: #999; margin-bottom: 4px; }
+    .form-group input,
+    .form-group select {
+      width: 100%; padding: 8px 11px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.07); color: #fff;
+      font-size: 0.88rem; outline: none; transition: border 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: #f7b733; }
+    .form-group input[type="range"] { padding: 5px 0; cursor: pointer; accent-color: #f7b733; }
+    .range-row { display: flex; align-items: center; gap: 8px; }
+    .range-val {
+      display: inline-block; width: 22px; text-align: center;
+      font-weight: 700; color: #f7b733; font-size: 0.95rem; flex-shrink: 0;
+    }
+
+    /* ══════════════════ Buttons ══════════════════ */
+    .btn {
+      padding: 9px 18px; border: none; border-radius: 10px;
+      cursor: pointer; font-size: 0.88rem; font-weight: 600;
+      transition: all 0.18s; white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #f7b733, #fc4a1a); color: #fff;
+      box-shadow: 0 3px 12px rgba(247,183,51,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(247,183,51,0.4); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.09); color: #ccc;
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.16); color: #fff; }
+    .btn-danger {
+      background: rgba(255,70,70,0.13); color: #ff8080;
+      border: 1px solid rgba(255,70,70,0.2); padding: 5px 11px; font-size: 0.78rem;
+    }
+    .btn-danger:hover { background: rgba(255,70,70,0.28); }
+    .btn-edit {
+      background: rgba(100,180,255,0.13); color: #80c8ff;
+      border: 1px solid rgba(100,180,255,0.2); padding: 5px 11px; font-size: 0.78rem;
+    }
+    .btn-edit:hover { background: rgba(100,180,255,0.28); }
+    .btn-rate {
+      background: rgba(255,210,80,0.12); color: #ffd250;
+      border: 1px solid rgba(255,210,80,0.22); padding: 5px 11px; font-size: 0.78rem;
+    }
+    .btn-rate:hover { background: rgba(255,210,80,0.28); }
+    .btn-rate.rated {
+      background: rgba(255,210,80,0.22); color: #ffd250;
+      border-color: rgba(255,210,80,0.45);
+    }
+
+    .actions-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .section-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 18px 0; }
+
+    /* ══════════════════ Info/Tip boxes ══════════════════ */
+    .info-tip {
+      font-size: 0.78rem; color: #888; padding: 9px 13px; border-radius: 8px;
+      background: rgba(255,255,255,0.04); border-left: 3px solid #f7b733;
+      margin-bottom: 14px; line-height: 1.5;
+    }
+    .offline-notice {
+      background: rgba(255,180,50,0.08); border: 1px solid rgba(255,180,50,0.2);
+      border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;
+      font-size: 0.82rem; color: #ffd080; display: none;
+    }
+    .setup-notice {
+      background: rgba(100,180,255,0.07); border: 1px solid rgba(100,180,255,0.18);
+      border-radius: 12px; padding: 16px; margin-bottom: 18px;
+      font-size: 0.82rem; color: #b0d8ff; line-height: 1.7;
+    }
+    .setup-notice strong { color: #80c8ff; }
+    .setup-notice code {
+      background: rgba(255,255,255,0.08); padding: 1px 6px;
+      border-radius: 4px; font-size: 0.8rem; color: #ffd250; font-family: monospace;
+    }
+
+    /* ══════════════════ Player List ══════════════════ */
+    .player-list { display: flex; flex-direction: column; gap: 10px; }
+    .player-item {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; padding: 11px 14px; transition: all 0.18s;
+    }
+    .player-item:hover { border-color: rgba(247,183,51,0.28); background: rgba(247,183,51,0.04); }
+    .player-item.rated-by-me { border-color: rgba(255,210,80,0.28); }
+    .player-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, #f7b733, #fc4a1a);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 800; color: #fff; flex-shrink: 0;
+    }
+    .player-info { flex: 1; min-width: 0; }
+    .player-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .player-name { font-weight: 700; font-size: 0.93rem; }
+    .player-meta { font-size: 0.75rem; color: #777; margin-top: 2px; }
+    .player-stats { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+    .stat-chip {
+      padding: 2px 7px; border-radius: 20px; font-size: 0.7rem; font-weight: 600;
+      background: rgba(247,183,51,0.13); color: #f7b733;
+      border: 1px solid rgba(247,183,51,0.18);
+    }
+    .stat-chip.from-rating {
+      background: rgba(80,220,120,0.12); color: #50dc78;
+      border-color: rgba(80,220,120,0.22);
+    }
+    .player-score { font-size: 1.05rem; font-weight: 800; color: #f7b733; min-width: 34px; text-align: right; }
+    .player-actions { display: flex; gap: 5px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+
+    /* ══════════════════ Badges ══════════════════ */
+    .count-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(247,183,51,0.18); color: #f7b733;
+      font-size: 0.74rem; font-weight: 700; margin-left: 5px;
+    }
+    .rating-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 1px 7px; border-radius: 10px; font-size: 0.68rem; font-weight: 600;
+      background: rgba(255,210,80,0.1); color: #ffd250;
+      border: 1px solid rgba(255,210,80,0.18);
+    }
+
+    /* ══════════════════ Split Mode ══════════════════ */
+    .mode-grid {
+      display: grid; grid-template-columns: repeat(2,1fr);
+      gap: 10px; margin-bottom: 18px;
+    }
+    @media (min-width: 600px) { .mode-grid { grid-template-columns: repeat(4,1fr); } }
+    .mode-card {
+      padding: 15px 10px; border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.09);
+      cursor: pointer; text-align: center; transition: all 0.18s;
+      background: rgba(255,255,255,0.04);
+    }
+    .mode-card:hover { border-color: rgba(247,183,51,0.45); background: rgba(247,183,51,0.06); }
+    .mode-card.selected {
+      border-color: #f7b733; background: rgba(247,183,51,0.11);
+      box-shadow: 0 0 18px rgba(247,183,51,0.14);
+    }
+    .mode-icon { font-size: 1.7rem; margin-bottom: 6px; }
+    .mode-name { font-weight: 700; font-size: 0.85rem; color: #e0e0e0; }
+    .mode-desc { font-size: 0.7rem; color: #777; margin-top: 3px; line-height: 1.4; }
+
+    /* ══════════════════ Captain Section ══════════════════ */
+    .captain-section { margin-top: 14px; }
+    .captain-select-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .captain-slot {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 10px; padding: 12px;
+    }
+    .captain-slot label { font-size: 0.76rem; color: #999; display: block; margin-bottom: 5px; }
+    .captain-slot select {
+      width: 100%; padding: 7px 10px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.07);
+      color: #fff; font-size: 0.83rem; outline: none;
+    }
+    .captain-slot select:focus { border-color: #f7b733; }
+
+    /* ══════════════════ Result Cards ══════════════════ */
+    .teams-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 14px; }
+    .team-card { border-radius: 16px; padding: 18px; border: 2px solid transparent; }
+    .team-card:nth-child(1) { background: linear-gradient(135deg,rgba(255,107,107,.1),rgba(255,107,107,.05)); border-color: rgba(255,107,107,.28); }
+    .team-card:nth-child(2) { background: linear-gradient(135deg,rgba(78,205,196,.1),rgba(78,205,196,.05));   border-color: rgba(78,205,196,.28); }
+    .team-card:nth-child(3) { background: linear-gradient(135deg,rgba(162,155,254,.1),rgba(162,155,254,.05));  border-color: rgba(162,155,254,.28); }
+    .team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .team-name { font-size: 1.1rem; font-weight: 800; }
+    .team-card:nth-child(1) .team-name { color: #ff6b6b; }
+    .team-card:nth-child(2) .team-name { color: #4ecdc4; }
+    .team-card:nth-child(3) .team-name { color: #a29bfe; }
+    .team-score { font-size: 0.82rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: rgba(255,255,255,0.09); color: #ccc; }
+    .team-member { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 9px; background: rgba(255,255,255,0.04); margin-bottom: 7px; border: 1px solid rgba(255,255,255,0.05); }
+    .member-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 800; color: #fff; flex-shrink: 0; }
+    .team-card:nth-child(1) .member-avatar { background: linear-gradient(135deg,#ff6b6b,#ee5a24); }
+    .team-card:nth-child(2) .member-avatar { background: linear-gradient(135deg,#4ecdc4,#44bd87); }
+    .team-card:nth-child(3) .member-avatar { background: linear-gradient(135deg,#a29bfe,#6c5ce7); }
+    .member-info { flex: 1; }
+    .member-name { font-weight: 700; font-size: 0.87rem; }
+    .member-role { font-size: 0.7rem; color: #777; margin-top: 1px; }
+    .captain-badge { font-size: 0.67rem; padding: 2px 6px; border-radius: 9px; background: rgba(247,183,51,0.18); color: #f7b733; border: 1px solid rgba(247,183,51,0.28); font-weight: 700; }
+    .member-score { font-weight: 800; font-size: 0.87rem; }
+    .team-card:nth-child(1) .member-score { color: #ff6b6b; }
+    .team-card:nth-child(2) .member-score { color: #4ecdc4; }
+    .team-card:nth-child(3) .member-score { color: #a29bfe; }
+    .team-stats-bar { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .stat-row { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+    .stat-label { font-size: 0.7rem; color: #777; width: 48px; flex-shrink: 0; }
+    .stat-bar-bg { flex: 1; height: 4px; border-radius: 3px; background: rgba(255,255,255,0.07); overflow: hidden; }
+    .stat-bar-fill { height: 100%; border-radius: 3px; transition: width 0.55s ease; }
+    .team-card:nth-child(1) .stat-bar-fill { background: #ff6b6b; }
+    .team-card:nth-child(2) .stat-bar-fill { background: #4ecdc4; }
+    .team-card:nth-child(3) .stat-bar-fill { background: #a29bfe; }
+    .stat-num { font-size: 0.7rem; font-weight: 700; width: 28px; text-align: right; color: #bbb; }
+    .balance-info { margin-top: 18px; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); text-align: center; }
+    .balance-title { font-size: 0.82rem; color: #888; margin-bottom: 8px; }
+    .balance-meter { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; }
+    .balance-item { text-align: center; }
+    .bi-val { font-size: 1.35rem; font-weight: 800; color: #f7b733; }
+    .bi-label { font-size: 0.7rem; color: #777; margin-top: 2px; }
+
+    /* ══════════════════ Empty State ══════════════════ */
+    .empty-state { text-align: center; padding: 36px 20px; color: #555; }
+    .empty-state .emoji { font-size: 2.8rem; margin-bottom: 10px; }
+    .empty-state p { font-size: 0.88rem; }
+
+    /* ══════════════════ Toast ══════════════════ */
+    .toast {
+      position: fixed; top: 18px; left: 50%;
+      transform: translateX(-50%) translateY(-90px);
+      background: #2a2a3e; color: #fff; padding: 11px 22px;
+      border-radius: 10px; font-size: 0.88rem; font-weight: 600;
+      z-index: 9999; transition: transform 0.28s ease;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { background: linear-gradient(135deg, #00b09b, #96c93d); }
+    .toast.error   { background: linear-gradient(135deg, #f093fb, #f5576c); }
+
+    /* ══════════════════ Modals (shared) ══════════════════ */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75); z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #161628; border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 20px; padding: 26px; width: 92%;
+      max-width: 520px; max-height: 92vh; overflow-y: auto;
+    }
+    .modal h3 { font-size: 1.08rem; color: #f7b733; margin-bottom: 18px; font-weight: 700; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+
+    /* ══════════════════ Star Rating ══════════════════ */
+    .star-rating { display: flex; gap: 3px; }
+    .star-rating .star {
+      font-size: 1.45rem; cursor: pointer; transition: transform 0.1s;
+      color: rgba(255,255,255,0.18); line-height: 1; user-select: none;
+    }
+    .star-rating .star.active { color: #ffd250; }
+    .star-rating .star.hover  { color: #ffe88a; transform: scale(1.15); }
+
+    .rating-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .rating-row:last-child { border-bottom: none; }
+    .rating-row .rlabel { font-size: 0.88rem; font-weight: 600; color: #ddd; min-width: 75px; }
+    .rval-display { color: #ffd250; font-weight: 700; min-width: 18px; text-align: right; font-size: 0.9rem; }
+
+    /* ══════════════════ Rating History ══════════════════ */
+    .rating-history { margin-top: 14px; }
+    .rating-history-title {
+      font-size: 0.78rem; color: #888; margin-bottom: 7px; font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .rater-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 10px; border-radius: 8px;
+      background: rgba(255,255,255,0.04); margin-bottom: 4px; font-size: 0.76rem;
+      border: 1px solid transparent;
+    }
+    .rater-name { color: #f7b733; font-weight: 700; min-width: 58px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rater-scores { color: #999; flex: 1; }
+    .rater-me { background: rgba(255,210,80,0.07); border-color: rgba(255,210,80,0.15); }
+
+    /* ══════════════════ Nickname Modal ══════════════════ */
+    #nickname-modal .modal {
+      max-width: 360px; text-align: center; padding: 32px 28px;
+    }
+    #nickname-modal .modal h3 { font-size: 1.25rem; margin-bottom: 6px; }
+    .nickname-sub { font-size: 0.8rem; color: #777; margin-bottom: 22px; line-height: 1.5; }
+    #nickname-input {
+      width: 100%; padding: 11px 16px; border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.07);
+      color: #fff; font-size: 1rem; outline: none; text-align: center; margin-bottom: 14px;
+      transition: border 0.2s;
+    }
+    #nickname-input:focus { border-color: #f7b733; }
+
+    /* ══════════════════ Loading Overlay ══════════════════ */
+    .loading-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 2000;
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px;
+    }
+    .loading-overlay.show { display: flex; }
+    .spinner {
+      width: 34px; height: 34px; border: 4px solid rgba(255,255,255,0.1);
+      border-top-color: #f7b733; border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: #f7b733; font-size: 0.88rem; font-weight: 600; }
+
+    /* ══════════════════ Supabase Setup Panel ══════════════════ */
+    .setup-panel {
+      background: rgba(30,30,50,0.9); border: 1px solid rgba(100,180,255,0.2);
+      border-radius: 14px; padding: 20px; margin-bottom: 18px;
+    }
+    .setup-panel h4 { color: #80c8ff; font-size: 0.92rem; margin-bottom: 12px; font-weight: 700; }
+    .setup-panel .config-input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+    .setup-panel .config-label { font-size: 0.76rem; color: #888; margin-bottom: 3px; }
+    .setup-panel input[type="text"] {
+      width: 100%; padding: 8px 12px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.07);
+      color: #fff; font-size: 0.82rem; outline: none; font-family: monospace;
+    }
+    .setup-panel input[type="text"]:focus { border-color: #80c8ff; }
+
+    /* ══════════════════ Responsive ══════════════════ */
+    @media (max-width: 480px) {
+      header h1 { font-size: 1.45rem; }
+      .mode-grid { grid-template-columns: repeat(2,1fr); }
+      .captain-select-grid { grid-template-columns: 1fr; }
+      .teams-grid { grid-template-columns: 1fr; }
+      .player-actions { gap: 4px; }
+      .btn-edit, .btn-danger, .btn-rate { padding: 4px 8px; font-size: 0.72rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ Loading Overlay ══ -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">连接中...</div>
+</div>
+
+<!-- ══ Toast ══ -->
+<div id="toast" class="toast"></div>
+
+<!-- ══ Status Bar ══ -->
+<div class="status-bar">
+  <div class="user-info">
+    <div class="user-avatar" id="status-avatar">?</div>
+    <span style="color:#888">你好，</span>
+    <span class="username" id="status-name">未登录</span>
+    <span class="change-name" onclick="openNicknameModal(true)">换昵称</span>
+  </div>
+  <div class="conn-status">
+    <span class="conn-dot connecting" id="conn-dot"></span>
+    <span class="conn-label" id="conn-label">连接中...</span>
+  </div>
+</div>
+
+<!-- ══ Header ══ -->
+<header>
+  <h1>🏀 篮球分队助手</h1>
+  <p>云端共享 · 多人打分 · 公平分队</p>
+</header>
+
+<div class="container">
+
+  <!-- ══ Tabs ══ -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('players')">👥 球员管理</button>
+    <button class="tab-btn" onclick="switchTab('split')">⚡ 开始分队</button>
+    <button class="tab-btn" onclick="switchTab('result')">🏆 分队结果</button>
+    <button class="tab-btn" onclick="switchTab('settings')">⚙️ 数据库配置</button>
+  </div>
+
+  <!-- ══════════ PLAYERS TAB ══════════ -->
+  <div id="tab-players" class="tab-panel active">
+
+    <div class="offline-notice" id="offline-notice">
+      ⚠️ <strong>当前处于离线模式</strong>，数据仅保存在本地浏览器中。请前往「⚙️ 数据库配置」标签页配置 Supabase 以启用云端共享。
+    </div>
+
+    <!-- Add Player Form -->
+    <div class="card">
+      <h2>➕ 添加球员</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>姓名 *</label>
+          <input type="text" id="inp-name" placeholder="球员姓名" />
+        </div>
+        <div class="form-group">
+          <label>身高 (cm)</label>
+          <input type="number" id="inp-height" placeholder="如 180" min="140" max="230" />
+        </div>
+        <div class="form-group">
+          <label>体重 (kg)</label>
+          <input type="number" id="inp-weight" placeholder="如 75" min="40" max="150" />
+        </div>
+      </div>
+      <div>
+        <p style="font-size:0.78rem;color:#888;margin-bottom:11px">⭐ 初始能力评分（1-5分，可被多人打分覆盖）</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>🎯 投射能力</label>
+            <div class="range-row">
+              <input type="range" id="inp-shoot" min="1" max="5" value="3" oninput="updateRange('shoot')" />
+              <span class="range-val" id="val-shoot">3</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>🏃 跑动能力</label>
+            <div class="range-row">
+              <input type="range" id="inp-run" min="1" max="5" value="3" oninput="updateRange('run')" />
+              <span class="range-val" id="val-run">3</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>🏀 抢篮板</label>
+            <div class="range-row">
+              <input type="range" id="inp-rebound" min="1" max="5" value="3" oninput="updateRange('rebound')" />
+              <span class="range-val" id="val-rebound">3</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>⚡ 突破能力</label>
+            <div class="range-row">
+              <input type="range" id="inp-drive" min="1" max="5" value="3" oninput="updateRange('drive')" />
+              <span class="range-val" id="val-drive">3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="actions-bar">
+        <button class="btn btn-primary" onclick="addPlayer()">➕ 添加球员</button>
+        <button class="btn btn-secondary" onclick="loadDemo()">📋 加载示例数据</button>
+      </div>
+    </div>
+
+    <!-- Player List -->
+    <div class="card">
+      <h2>
+        👥 球员列表
+        <span class="count-badge" id="player-count">0</span>
+      </h2>
+      <div class="info-tip">
+        ⭐ 点击「打分」可为球员的各项能力打分（1-5星），所有人的打分将取综合平均值作为最终能力，<strong style="color:#50dc78">绿色标签</strong>表示已有打分数据。
+      </div>
+      <div id="player-list" class="player-list">
+        <div class="empty-state">
+          <div class="emoji">🏀</div>
+          <p>还没有球员，添加球员或加载示例数据开始吧！</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SPLIT TAB ══════════ -->
+  <div id="tab-split" class="tab-panel">
+    <div class="card">
+      <h2>🎯 选择分队方式</h2>
+      <div class="mode-grid">
+        <div class="mode-card selected" onclick="selectMode('balanced')" id="mode-balanced">
+          <div class="mode-icon">⚖️</div>
+          <div class="mode-name">均衡分队</div>
+          <div class="mode-desc">按能力总值<br/>蛇形均衡分配</div>
+        </div>
+        <div class="mode-card" onclick="selectMode('random')" id="mode-random">
+          <div class="mode-icon">🎲</div>
+          <div class="mode-name">随机分队</div>
+          <div class="mode-desc">完全随机<br/>充满惊喜</div>
+        </div>
+        <div class="mode-card" onclick="selectMode('captain')" id="mode-captain">
+          <div class="mode-icon">👑</div>
+          <div class="mode-name">指定队长</div>
+          <div class="mode-desc">手动指定三队<br/>所有队员</div>
+        </div>
+        <div class="mode-card" onclick="selectMode('captain-random')" id="mode-captain-random">
+          <div class="mode-icon">🎯</div>
+          <div class="mode-name">队长+随机</div>
+          <div class="mode-desc">指定队长后<br/>剩余随机分配</div>
+        </div>
+      </div>
+
+      <!-- Captain-random: 3 captains -->
+      <div id="captain-panel" class="captain-section" style="display:none">
+        <div class="section-divider"></div>
+        <p style="font-size:0.83rem;color:#f7b733;font-weight:700;margin-bottom:11px">👑 选择队长</p>
+        <div class="captain-select-grid">
+          <div class="captain-slot">
+            <label>🔴 A队队长</label>
+            <select id="cap-a"><option value="">请选择</option></select>
+          </div>
+          <div class="captain-slot">
+            <label>🟢 B队队长</label>
+            <select id="cap-b"><option value="">请选择</option></select>
+          </div>
+          <div class="captain-slot">
+            <label>🟣 C队队长</label>
+            <select id="cap-c"><option value="">请选择</option></select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Full captain assignment -->
+      <div id="full-captain-panel" style="display:none;margin-top:14px">
+        <div class="section-divider"></div>
+        <p style="font-size:0.83rem;color:#f7b733;font-weight:700;margin-bottom:11px">👥 手动分配所有队员</p>
+        <div class="captain-select-grid" id="full-assignment-grid"></div>
+      </div>
+
+      <div class="section-divider"></div>
+      <button class="btn btn-primary" onclick="doSplit()"
+        style="width:100%;padding:13px;font-size:0.98rem;letter-spacing:1px">
+        ⚡ 一键分队
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════ RESULT TAB ══════════ -->
+  <div id="tab-result" class="tab-panel">
+    <div id="result-empty" class="card">
+      <div class="empty-state">
+        <div class="emoji">⚡</div>
+        <p>还没有分队结果，去「⚡ 开始分队」标签页进行分队吧！</p>
+      </div>
+    </div>
+    <div id="result-content" style="display:none">
+      <div class="card" style="margin-bottom:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <h2 style="margin:0">🏆 分队结果</h2>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary" onclick="doSplit()">🔄 重新分队</button>
+            <button class="btn btn-secondary" onclick="switchTab('split')">⚙️ 修改方式</button>
+          </div>
+        </div>
+        <div class="teams-grid" id="teams-grid"></div>
+        <div class="balance-info" id="balance-info"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SETTINGS TAB ══════════ -->
+  <div id="tab-settings" class="tab-panel">
+    <div class="card">
+      <h2>⚙️ Supabase 数据库配置</h2>
+      <div class="setup-notice">
+        <strong>如何启用云端共享功能？</strong>（只需3步，约5分钟）<br/>
+        1. 前往 <strong>supabase.com</strong> 注册免费账号（支持 GitHub 一键登录）<br/>
+        2. 创建新项目后，前往 <strong>SQL Editor</strong>，复制下方 SQL 执行建表<br/>
+        3. 在 <strong>Project Settings → API</strong> 获取 <code>URL</code> 和 <code>anon public key</code>，填入下方保存即可
+      </div>
+
+      <div class="setup-panel">
+        <h4>📋 建表 SQL（在 Supabase SQL Editor 中执行）</h4>
+        <textarea id="sql-display" readonly
+          style="width:100%;height:160px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;color:#a0d8a0;font-family:monospace;font-size:0.78rem;resize:vertical;outline:none">-- 球员表
+CREATE TABLE IF NOT EXISTS players (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  height NUMERIC,
+  weight NUMERIC,
+  shoot INT DEFAULT 3,
+  run INT DEFAULT 3,
+  rebound INT DEFAULT 3,
+  drive INT DEFAULT 3,
+  created_by TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 打分表
+CREATE TABLE IF NOT EXISTS ratings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  player_id UUID REFERENCES players(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
+  nickname TEXT,
+  shoot INT NOT NULL,
+  run INT NOT NULL,
+  rebound INT NOT NULL,
+  drive INT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(player_id, user_id)
+);
+
+-- 开启 Row Level Security（允许公开读写，适合小组内部使用）
+ALTER TABLE players ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ratings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all_players" ON players FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "allow_all_ratings" ON ratings FOR ALL USING (true) WITH CHECK (true);
+        </textarea>
+        <button class="btn btn-secondary" style="margin-top:8px;font-size:0.78rem;padding:6px 14px" onclick="copySql()">📋 复制 SQL</button>
+      </div>
+
+      <div class="setup-panel" style="margin-top:0">
+        <h4>🔑 填入你的 Supabase 配置</h4>
+        <div class="config-input-group">
+          <div>
+            <div class="config-label"></div>
+            <input type="text" id="cfg-url" placeholder="https://jnifanaalqfcfrfylyub.supabase.co" />
+          </div>
+          <div>
+            <div class="config-label">Anon Public Key（Settings → API → anon public）</div>
+            <input type="text" id="cfg-key" placeholder="sb_publishable_7JmJgRlzcfEUmaUD9YssCw_KlUoKVbi" />
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSupabaseConfig()">💾 保存并连接</button>
+        <button class="btn btn-danger" style="margin-left:8px" onclick="clearSupabaseConfig()">清除配置</button>
+        <div id="cfg-status" style="margin-top:10px;font-size:0.8rem;color:#888"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ══════════════════════════════════════
+     MODALS
+══════════════════════════════════════ -->
+
+<!-- Nickname Modal -->
+<div class="modal-overlay" id="nickname-modal">
+  <div class="modal">
+    <h3>👤 设置你的昵称</h3>
+    <p class="nickname-sub">昵称用于标识你的打分记录，其他人可以看到你的名字</p>
+    <input type="text" id="nickname-input" placeholder="输入昵称（2-10个字）" maxlength="10"
+      onkeydown="if(event.key==='Enter')saveNickname()" />
+    <button class="btn btn-primary" style="width:100%;padding:12px;font-size:0.95rem"
+      onclick="saveNickname()">进入系统 🏀</button>
+  </div>
+</div>
+
+<!-- Edit Player Modal -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h3>✏️ 编辑球员信息</h3>
+    <input type="hidden" id="edit-id" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label>姓名 *</label>
+        <input type="text" id="edit-name" placeholder="球员姓名" />
+      </div>
+      <div class="form-group">
+        <label>身高 (cm)</label>
+        <input type="number" id="edit-height" placeholder="如 180" />
+      </div>
+      <div class="form-group">
+        <label>体重 (kg)</label>
+        <input type="number" id="edit-weight" placeholder="如 75" />
+      </div>
+    </div>
+    <p style="font-size:0.78rem;color:#888;margin-bottom:11px">⭐ 初始能力评分（1-5分）</p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>🎯 投射能力</label>
+        <div class="range-row">
+          <input type="range" id="edit-shoot" min="1" max="5" value="3"
+            oninput="updateRangeById('edit-shoot-disp', this.value)" />
+          <span class="range-val" id="edit-shoot-disp">3</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>🏃 跑动能力</label>
+        <div class="range-row">
+          <input type="range" id="edit-run" min="1" max="5" value="3"
+            oninput="updateRangeById('edit-run-disp', this.value)" />
+          <span class="range-val" id="edit-run-disp">3</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>🏀 抢篮板</label>
+        <div class="range-row">
+          <input type="range" id="edit-rebound" min="1" max="5" value="3"
+            oninput="updateRangeById('edit-rebound-disp', this.value)" />
+          <span class="range-val" id="edit-rebound-disp">3</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>⚡ 突破能力</label>
+        <div class="range-row">
+          <input type="range" id="edit-drive" min="1" max="5" value="3"
+            oninput="updateRangeById('edit-drive-disp', this.value)" />
+          <span class="range-val" id="edit-drive-disp">3</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('edit-modal')">取消</button>
+      <button class="btn btn-primary" onclick="saveEdit()">保存修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rate Player Modal -->
+<div class="modal-overlay" id="rate-modal">
+  <div class="modal">
+    <h3 id="rate-modal-title">⭐ 为球员打分</h3>
+    <input type="hidden" id="rate-player-id" />
+
+    <div id="rate-form">
+      <div class="rating-row">
+        <span class="rlabel">🎯 投射</span>
+        <div class="star-rating" id="stars-shoot"></div>
+        <span class="rval-display" id="rval-shoot">-</span>
+      </div>
+      <div class="rating-row">
+        <span class="rlabel">🏃 跑动</span>
+        <div class="star-rating" id="stars-run"></div>
+        <span class="rval-display" id="rval-run">-</span>
+      </div>
+      <div class="rating-row">
+        <span class="rlabel">🏀 篮板</span>
+        <div class="star-rating" id="stars-rebound"></div>
+        <span class="rval-display" id="rval-rebound">-</span>
+      </div>
+      <div class="rating-row">
+        <span class="rlabel">⚡ 突破</span>
+        <div class="star-rating" id="stars-drive"></div>
+        <span class="rval-display" id="rval-drive">-</span>
+      </div>
+    </div>
+
+    <div class="rating-history" id="rating-history-section">
+      <div class="rating-history-title">
+        <span>📋 当前打分记录</span>
+        <span id="rating-count-label" style="color:#ffd250;font-size:0.75rem"></span>
+      </div>
+      <div id="rating-history-list">
+        <div style="color:#555;font-size:0.78rem;padding:6px 0">加载中...</div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('rate-modal')">取消</button>
+      <button class="btn btn-primary" onclick="submitRating()">⭐ 提交打分</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  🏀 篮球分队助手 - 完整 JavaScript
+//  数据库: Supabase REST API (无需SDK)  |  降级: localStorage
+// ════════════════════════════════════════════════════════════
+
+// ── 配置 ────────────────────────────────────────────────────
+// 默认 Supabase 配置（可在「⚙️ 数据库配置」页面覆盖）
+const DEFAULT_SUPABASE_URL = 'https://jnifanaalqfcfrfylyub.supabase.co';
+const DEFAULT_SUPABASE_KEY = 'sb_publishable_7JmJgRlzcfEUmaUD9YssCw_KlUoKVbi';
+
+let SUPABASE_URL = '';
+let SUPABASE_KEY = '';
+
+// ── 应用状态 ─────────────────────────────────────────────────
+let players        = [];
+let ratingsMap     = {};
+let currentMode    = 'balanced';
+let splitResult    = null;
+let editingId      = null;
+let ratingPlayerId = null;
+let ratingValues   = { shoot:0, run:0, rebound:0, drive:0 };
+let myUserId       = '';
+let myNickname     = '';
+let isOnline       = false;
+let pollTimer      = null;
+
+// ════════════════════════════════════════════════════════════
+//  初始化
+// ════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  // 优先使用用户自定义配置，否则使用默认配置
+  SUPABASE_URL = localStorage.getItem('sbUrl') || DEFAULT_SUPABASE_URL;
+  SUPABASE_KEY = localStorage.getItem('sbKey') || DEFAULT_SUPABASE_KEY;
+  document.getElementById('cfg-url').value = SUPABASE_URL;
+  document.getElementById('cfg-key').value = SUPABASE_KEY;
+
+  myUserId   = localStorage.getItem('bbUserId')   || '';
+  myNickname = localStorage.getItem('bbNickname') || '';
+
+  if (!myUserId || !myNickname) {
+    openNicknameModal(false);
+    return;
+  }
+  updateStatusBar();
+  initApp();
+});
+
+async function initApp() {
+  if (SUPABASE_URL && SUPABASE_KEY) {
+    showLoading('连接 Supabase...');
+    const ok = await testSupabaseConn();
+    if (ok) {
+      setConnState('online');
+      hideLoading();
+      await loadPlayers();
+      startPolling();
+    } else {
+      setConnState('offline');
+      hideLoading();
+      loadLocalPlayers();
+      showToast('⚠️ 数据库连接失败，使用本地模式', 'error');
+    }
+  } else {
+    setConnState('offline');
+    document.getElementById('offline-notice').style.display = 'block';
+    loadLocalPlayers();
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  Tab 切换（必须挂在 window 上供 HTML onclick 调用）
+// ════════════════════════════════════════════════════════════
+window.switchTab = function(name) {
+  const tabNames = ['players', 'split', 'result', 'settings'];
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', tabNames[i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById('tab-' + name);
+  if (panel) panel.classList.add('active');
+  if (name === 'split') refreshCaptainSelects();
+};
+
+// ════════════════════════════════════════════════════════════
+//  Supabase 配置管理
+// ════════════════════════════════════════════════════════════
+window.saveSupabaseConfig = async function() {
+  const url = document.getElementById('cfg-url').value.trim().replace(/\/$/, '');
+  const key = document.getElementById('cfg-key').value.trim();
+  if (!url || !key) { showToast('请填写完整配置！', 'error'); return; }
+  if (!url.startsWith('https://')) {
+    showToast('URL 应为 https://xxxx.supabase.co', 'error'); return;
+  }
+  SUPABASE_URL = url;
+  SUPABASE_KEY = key;
+  localStorage.setItem('sbUrl', url);
+  localStorage.setItem('sbKey', key);
+
+  const statusEl = document.getElementById('cfg-status');
+  statusEl.textContent = '🔄 正在测试连接...';
+  statusEl.style.color = '#f7b733';
+
+  showLoading('测试数据库连接...');
+  const ok = await testSupabaseConn();
+  hideLoading();
+
+  if (ok) {
+    statusEl.textContent = '✅ 连接成功！';
+    statusEl.style.color = '#50dc78';
+    setConnState('online');
+    document.getElementById('offline-notice').style.display = 'none';
+    showToast('✅ Supabase 连接成功！');
+    await loadPlayers();
+    startPolling();
+    switchTab('players');
+  } else {
+    statusEl.textContent = '❌ 连接失败，请检查 URL 和 Key，并确认已执行建表 SQL';
+    statusEl.style.color = '#ff6b6b';
+    showToast('连接失败，请检查配置', 'error');
+  }
+};
+
+window.clearSupabaseConfig = function() {
+  if (!confirm('确定要清除数据库配置？')) return;
+  SUPABASE_URL = '';
+  SUPABASE_KEY = '';
+  localStorage.removeItem('sbUrl');
+  localStorage.removeItem('sbKey');
+  document.getElementById('cfg-url').value = '';
+  document.getElementById('cfg-key').value = '';
+  document.getElementById('cfg-status').textContent = '配置已清除，使用本地模式';
+  setConnState('offline');
+  document.getElementById('offline-notice').style.display = 'block';
+  stopPolling();
+  showToast('配置已清除');
+};
+
+window.copySql = function() {
+  const sql = document.getElementById('sql-display').value;
+  navigator.clipboard.writeText(sql)
+    .then(() => showToast('✅ SQL 已复制！'))
+    .catch(() => { document.getElementById('sql-display').select(); document.execCommand('copy'); showToast('✅ SQL 已复制！'); });
+};
+
+// ════════════════════════════════════════════════════════════
+//  Supabase REST API 封装
+// ════════════════════════════════════════════════════════════
+function sbHeaders(extra = {}) {
+  return {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+    ...extra
+  };
+}
+async function sbGet(path, params) {
+  const r = await fetch(SUPABASE_URL + '/rest/v1/' + path + (params || ''), { headers: sbHeaders() });
+  if (!r.ok) throw new Error('GET ' + path + ' failed: ' + r.status);
+  return r.json();
+}
+async function sbPost(path, data) {
+  const r = await fetch(SUPABASE_URL + '/rest/v1/' + path, { method: 'POST', headers: sbHeaders(), body: JSON.stringify(data) });
+  if (!r.ok) throw new Error('POST failed: ' + r.status);
+  return r.json();
+}
+async function sbPatch(path, filter, data) {
+  const r = await fetch(SUPABASE_URL + '/rest/v1/' + path + '?' + filter, { method: 'PATCH', headers: sbHeaders(), body: JSON.stringify(data) });
+  if (!r.ok) throw new Error('PATCH failed: ' + r.status);
+  return r.json();
+}
+async function sbDelete(path, filter) {
+  const r = await fetch(SUPABASE_URL + '/rest/v1/' + path + '?' + filter, { method: 'DELETE', headers: sbHeaders() });
+  if (!r.ok) throw new Error('DELETE failed: ' + r.status);
+  return true;
+}
+async function sbUpsert(path, data) {
+  const h = sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=representation' });
+  const r = await fetch(SUPABASE_URL + '/rest/v1/' + path, { method: 'POST', headers: h, body: JSON.stringify(data) });
+  if (!r.ok) { const t = await r.text(); throw new Error('UPSERT failed: ' + r.status + ' ' + t); }
+  return r.json();
+}
+async function testSupabaseConn() {
+  try { await sbGet('players', '?limit=1&select=id'); return true; } catch(e) { return false; }
+}
+
+// ════════════════════════════════════════════════════════════
+//  轮询（每15秒刷新）
+// ════════════════════════════════════════════════════════════
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(() => { if (isOnline) loadPlayers(false); }, 15000);
+}
+function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+// ════════════════════════════════════════════════════════════
+//  球员数据 CRUD
+// ════════════════════════════════════════════════════════════
+async function loadPlayers(showLoad = true) {
+  try {
+    if (showLoad) showLoading('加载球员数据...');
+    const data = await sbGet('players', '?select=*&order=created_at.asc');
+    players = data.map(p => ({ id:p.id, name:p.name, height:p.height, weight:p.weight, shoot:p.shoot, run:p.run, rebound:p.rebound, drive:p.drive, createdBy:p.created_by }));
+    await loadAllRatings();
+    if (showLoad) hideLoading();
+    renderPlayers();
+  } catch(e) {
+    if (showLoad) hideLoading();
+    console.error('loadPlayers error:', e);
+  }
+}
+
+async function loadAllRatings() {
+  if (!players.length || !SUPABASE_URL) return;
+  try {
+    const data = await sbGet('ratings', '?select=*');
+    const grouped = {};
+    for (const r of data) {
+      if (!grouped[r.player_id]) grouped[r.player_id] = [];
+      grouped[r.player_id].push(r);
+    }
+    for (const p of players) {
+      const arr = grouped[p.id] || [];
+      if (!arr.length) { ratingsMap[p.id] = null; continue; }
+      const avg = k => arr.reduce((s,r) => s+(r[k]||0), 0) / arr.length;
+      ratingsMap[p.id] = { avgShoot:avg('shoot'), avgRun:avg('run'), avgRebound:avg('rebound'), avgDrive:avg('drive'), count:arr.length, myRating:arr.find(r=>r.user_id===myUserId)||null, all:arr };
+    }
+  } catch(e) { console.warn('loadAllRatings error:', e); }
+}
+
+function loadLocalPlayers() {
+  try { const c = localStorage.getItem('bbPlayers'); if (c) players = JSON.parse(c); } catch(e) {}
+  renderPlayers();
+}
+function saveLocalPlayers() { try { localStorage.setItem('bbPlayers', JSON.stringify(players)); } catch(e) {} }
+
+window.addPlayer = async function() {
+  const name = document.getElementById('inp-name').value.trim();
+  if (!name) { showToast('请输入球员姓名！', 'error'); return; }
+  const playerData = {
+    name, created_by: myNickname,
+    height:  parseFloat(document.getElementById('inp-height').value) || null,
+    weight:  parseFloat(document.getElementById('inp-weight').value) || null,
+    shoot:   parseInt(document.getElementById('inp-shoot').value),
+    run:     parseInt(document.getElementById('inp-run').value),
+    rebound: parseInt(document.getElementById('inp-rebound').value),
+    drive:   parseInt(document.getElementById('inp-drive').value),
+  };
+  if (isOnline) {
+    try {
+      showLoading('添加球员...');
+      const [saved] = await sbPost('players', playerData);
+      players.push({ id:saved.id, name:saved.name, height:saved.height, weight:saved.weight, shoot:saved.shoot, run:saved.run, rebound:saved.rebound, drive:saved.drive, createdBy:saved.created_by });
+      hideLoading();
+    } catch(e) {
+      hideLoading();
+      showToast('云端保存失败，已本地保存', 'error');
+      players.push({ ...playerData, id:'local_'+Date.now(), createdBy:playerData.created_by });
+      saveLocalPlayers();
+    }
+  } else {
+    players.push({ ...playerData, id:'local_'+Date.now(), createdBy:playerData.created_by });
+    saveLocalPlayers();
+  }
+  clearForm(); renderPlayers(); showToast('✅ ' + name + ' 已添加！');
+};
+
+window.removePlayer = async function(id) {
+  if (!confirm('确定删除该球员及其所有打分数据？')) return;
+  if (isOnline && !String(id).startsWith('local_')) {
+    try {
+      showLoading('删除中...');
+      await sbDelete('ratings', 'player_id=eq.' + id);
+      await sbDelete('players', 'id=eq.' + id);
+      hideLoading();
+    } catch(e) { hideLoading(); showToast('删除失败：' + e.message, 'error'); return; }
+  }
+  players = players.filter(p => p.id !== id);
+  delete ratingsMap[id];
+  if (!isOnline) saveLocalPlayers();
+  renderPlayers(); showToast('球员已删除', 'error');
+};
+
+window.openEdit = function(id) {
+  const p = players.find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+  document.getElementById('edit-name').value   = p.name;
+  document.getElementById('edit-height').value = p.height || '';
+  document.getElementById('edit-weight').value = p.weight || '';
+  ['shoot','run','rebound','drive'].forEach(k => {
+    document.getElementById('edit-' + k).value = p[k];
+    document.getElementById('edit-' + k + '-disp').textContent = p[k];
+  });
+  document.getElementById('edit-modal').classList.add('open');
+};
+
+window.saveEdit = async function() {
+  const p = players.find(x => x.id === editingId);
+  if (!p) return;
+  const name = document.getElementById('edit-name').value.trim();
+  if (!name) { showToast('姓名不能为空！', 'error'); return; }
+  const updates = {
+    name,
+    height:  parseFloat(document.getElementById('edit-height').value) || null,
+    weight:  parseFloat(document.getElementById('edit-weight').value) || null,
+    shoot:   parseInt(document.getElementById('edit-shoot').value),
+    run:     parseInt(document.getElementById('edit-run').value),
+    rebound: parseInt(document.getElementById('edit-rebound').value),
+    drive:   parseInt(document.getElementById('edit-drive').value),
+  };
+  if (isOnline && !String(editingId).startsWith('local_')) {
+    try {
+      showLoading('保存中...');
+      await sbPatch('players', 'id=eq.' + editingId, updates);
+      hideLoading();
+    } catch(e) { hideLoading(); showToast('云端保存失败', 'error'); return; }
+  }
+  Object.assign(p, updates);
+  if (!isOnline) saveLocalPlayers();
+  closeModal('edit-modal'); renderPlayers(); showToast('✅ ' + name + ' 信息已更新！');
+};
+
+// ════════════════════════════════════════════════════════════
+//  示例数据
+// ════════════════════════════════════════════════════════════
+window.loadDemo = async function() {
+  if (players.length > 0 && !confirm('确定要清空并加载示例数据吗？')) return;
+  const demo = [
+    { name:'侯睿',   height:182, weight:90, shoot:3, run:3, rebound:4, drive:4 },
+    { name:'李聪',   height:182, weight:90, shoot:4, run:2, rebound:4, drive:3 },
+    { name:'宋恩华', height:180, weight:68, shoot:1, run:5, rebound:5, drive:4 },
+    { name:'马天驰', height:178, weight:75, shoot:3, run:4, rebound:3, drive:3 },
+    { name:'崔泽峰', height:188, weight:70, shoot:3, run:3, rebound:4, drive:4 },
+    { name:'师超鹏', height:170, weight:65, shoot:5, run:5, rebound:1, drive:5 },
+    { name:'刘仕忠', height:183, weight:82, shoot:2, run:3, rebound:5, drive:3 },
+    { name:'范睿泽', height:176, weight:72, shoot:5, run:3, rebound:2, drive:4 },
+    { name:'张高祯', height:172, weight:67, shoot:3, run:5, rebound:2, drive:5 },
+  ];
+  if (isOnline) {
+    showLoading('正在加载示例数据...');
+    try {
+      for (const p of players) {
+        if (!String(p.id).startsWith('local_')) {
+          try { await sbDelete('ratings', 'player_id=eq.' + p.id); } catch(e) {}
+          try { await sbDelete('players', 'id=eq.' + p.id); } catch(e) {}
+        }
+      }
+      players = []; ratingsMap = {};
+      for (const d of demo) {
+        const [saved] = await sbPost('players', { ...d, created_by: myNickname });
+        players.push({ id:saved.id, name:saved.name, height:saved.height, weight:saved.weight, shoot:saved.shoot, run:saved.run, rebound:saved.rebound, drive:saved.drive, createdBy:saved.created_by });
+      }
+      hideLoading();
+    } catch(e) { hideLoading(); showToast('加载失败: ' + e.message, 'error'); return; }
+  } else {
+    players = demo.map((d,i) => ({ ...d, id:'local_'+i, createdBy:myNickname }));
+    ratingsMap = {}; saveLocalPlayers();
+  }
+  renderPlayers(); showToast('📋 示例数据已加载，共9名球员！');
+};
+
+// ════════════════════════════════════════════════════════════
+//  打分系统
+// ════════════════════════════════════════════════════════════
+window.openRateModal = async function(playerId) {
+  ratingPlayerId = playerId;
+  const p = players.find(x => x.id === playerId);
+  if (!p) return;
+  document.getElementById('rate-modal-title').textContent = '⭐ 为「' + p.name + '」打分';
+  ratingValues = { shoot:0, run:0, rebound:0, drive:0 };
+  const r = ratingsMap[playerId];
+  if (r && r.myRating) ratingValues = { shoot:r.myRating.shoot, run:r.myRating.run, rebound:r.myRating.rebound, drive:r.myRating.drive };
+  ['shoot','run','rebound','drive'].forEach(k => renderStars(k, ratingValues[k]));
+  renderRatingHistory(playerId);
+
+  if (isOnline && !String(playerId).startsWith('local_')) {
+    try {
+      const data = await sbGet('ratings', '?player_id=eq.' + playerId + '&select=*');
+      const arr = data || [];
+      if (arr.length) {
+        const avg = k => arr.reduce((s,r) => s+(r[k]||0),0) / arr.length;
+        ratingsMap[playerId] = { avgShoot:avg('shoot'), avgRun:avg('run'), avgRebound:avg('rebound'), avgDrive:avg('drive'), count:arr.length, myRating:arr.find(r=>r.user_id===myUserId)||null, all:arr };
+        if (ratingsMap[playerId].myRating) {
+          const my = ratingsMap[playerId].myRating;
+          ratingValues = { shoot:my.shoot, run:my.run, rebound:my.rebound, drive:my.drive };
+          ['shoot','run','rebound','drive'].forEach(k => renderStars(k, ratingValues[k]));
+        }
+      } else { ratingsMap[playerId] = null; }
+      renderRatingHistory(playerId);
+    } catch(e) {}
+  }
+  document.getElementById('rate-modal').classList.add('open');
+};
+
+function renderStars(key, val) {
+  const c = document.getElementById('stars-' + key);
+  c.innerHTML = '';
+  for (let n = 1; n <= 5; n++) {
+    const s = document.createElement('span');
+    s.className = 'star' + (n <= val ? ' active' : '');
+    s.textContent = '★';
+    s.onclick     = () => setRatingStar(key, n);
+    s.onmouseover = () => hoverStars(key, n);
+    s.onmouseout  = () => unhoverStars(key);
+    c.appendChild(s);
+  }
+  document.getElementById('rval-' + key).textContent = val > 0 ? val : '-';
+}
+
+function setRatingStar(key, val) { ratingValues[key] = val; renderStars(key, val); }
+
+function hoverStars(key, val) {
+  document.getElementById('stars-' + key).querySelectorAll('.star').forEach((s,i) => {
+    s.classList.toggle('active', i < val);
+  });
+}
+function unhoverStars(key) { renderStars(key, ratingValues[key]); }
+
+function renderRatingHistory(playerId) {
+  const r = ratingsMap[playerId];
+  const countEl = document.getElementById('rating-count-label');
+  const list    = document.getElementById('rating-history-list');
+  if (!r || !r.count) {
+    countEl.textContent = '（暂无打分）';
+    list.innerHTML = '<div style="color:#555;font-size:0.78rem;padding:6px 0">还没有人打过分，快来第一个！</div>';
+    return;
+  }
+  countEl.textContent = '共 ' + r.count + ' 人';
+  list.innerHTML = r.all.map(rater => {
+    const isMe = rater.user_id === myUserId;
+    return '<div class="rater-item ' + (isMe?'rater-me':'') + '">' +
+      '<span class="rater-name">' + (rater.nickname||'匿名') + (isMe?' (我)':'') + '</span>' +
+      '<span class="rater-scores">投射' + rater.shoot + ' · 跑动' + rater.run + ' · 篮板' + rater.rebound + ' · 突破' + rater.drive + '</span>' +
+      '</div>';
+  }).join('');
+}
+
+window.submitRating = async function() {
+  if (!ratingPlayerId) return;
+  const { shoot, run, rebound, drive } = ratingValues;
+  if ([shoot, run, rebound, drive].some(v => v === 0)) { showToast('请给所有项目打分！', 'error'); return; }
+  const ratingData = { player_id:ratingPlayerId, user_id:myUserId, nickname:myNickname, shoot, run, rebound, drive, updated_at: new Date().toISOString() };
+
+  if (isOnline && !String(ratingPlayerId).startsWith('local_')) {
+    try {
+      showLoading('提交打分...');
+      await sbUpsert('ratings', ratingData);
+      const data = await sbGet('ratings', '?player_id=eq.' + ratingPlayerId + '&select=*');
+      const arr  = data || [];
+      const avg  = k => arr.reduce((s,r) => s+(r[k]||0),0) / arr.length;
+      ratingsMap[ratingPlayerId] = { avgShoot:avg('shoot'), avgRun:avg('run'), avgRebound:avg('rebound'), avgDrive:avg('drive'), count:arr.length, myRating:arr.find(r=>r.user_id===myUserId)||null, all:arr };
+      hideLoading();
+    } catch(e) { hideLoading(); showToast('提交失败：' + e.message, 'error'); return; }
+  } else {
+    let cache = ratingsMap[ratingPlayerId];
+    if (!cache) { cache = { avgShoot:0, avgRun:0, avgRebound:0, avgDrive:0, count:0, myRating:null, all:[] }; ratingsMap[ratingPlayerId] = cache; }
+    const entry = { user_id:myUserId, nickname:myNickname, shoot, run, rebound, drive };
+    const idx = cache.all.findIndex(r => r.user_id === myUserId);
+    if (idx >= 0) cache.all[idx] = entry; else cache.all.push(entry);
+    const avg = k => cache.all.reduce((s,r)=>s+(r[k]||0),0)/cache.all.length;
+    Object.assign(cache, { avgShoot:avg('shoot'), avgRun:avg('run'), avgRebound:avg('rebound'), avgDrive:avg('drive'), count:cache.all.length, myRating:entry });
+  }
+  closeModal('rate-modal'); renderPlayers(); showToast('🎉 打分提交成功！');
+};
+
+// ════════════════════════════════════════════════════════════
+//  能力值计算
+// ════════════════════════════════════════════════════════════
+function effectiveStats(p) {
+  const r = ratingsMap[p.id];
+  if (r && r.count > 0) return { shoot:r.avgShoot, run:r.avgRun, rebound:r.avgRebound, drive:r.avgDrive, fromRating:true, ratingCount:r.count };
+  return { shoot:p.shoot, run:p.run, rebound:p.rebound, drive:p.drive, fromRating:false, ratingCount:0 };
+}
+function calcScore(p) {
+  const st = effectiveStats(p);
+  const hScore = p.height ? Math.min(5, Math.max(1, (p.height-155)/20)) : 2.5;
+  const wScore = p.weight ? Math.min(5, Math.max(1, (p.weight-55)/15))  : 2.5;
+  return parseFloat(((st.shoot+st.run+st.rebound+st.drive)*0.7 + (hScore+wScore)/2*4*0.3).toFixed(2));
+}
+
+// ════════════════════════════════════════════════════════════
+//  渲染球员列表
+// ════════════════════════════════════════════════════════════
+function renderPlayers() {
+  const list = document.getElementById('player-list');
+  document.getElementById('player-count').textContent = players.length;
+  if (players.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="emoji">🏀</div><p>还没有球员，添加球员或加载示例数据开始吧！</p></div>';
+    return;
+  }
+  list.innerHTML = players.map((p, idx) => {
+    const sc     = calcScore(p);
+    const st     = effectiveStats(p);
+    const iRated = ratingsMap[p.id] && ratingsMap[p.id].myRating;
+    const chip   = st.fromRating ? 'stat-chip from-rating' : 'stat-chip';
+    const badge  = st.ratingCount > 0 ? '<span class="rating-badge">⭐ ' + st.ratingCount + '人打分</span>' : '';
+    return '<div class="player-item' + (iRated?' rated-by-me':'') + '">' +
+      '<div class="player-avatar">' + p.name[0] + '</div>' +
+      '<div class="player-info">' +
+        '<div class="player-name-row"><span class="player-name">' + p.name + '</span>' + badge + '</div>' +
+        '<div class="player-meta">' + (p.height?p.height+'cm · ':'') + (p.weight?p.weight+'kg · ':'') + '#'+(idx+1)+' · 添加者: '+(p.createdBy||'?')+'</div>' +
+        '<div class="player-stats">' +
+          '<span class="' + chip + '">🎯 ' + st.shoot.toFixed(1) + '</span>' +
+          '<span class="' + chip + '">🏃 ' + st.run.toFixed(1) + '</span>' +
+          '<span class="' + chip + '">🏀 ' + st.rebound.toFixed(1) + '</span>' +
+          '<span class="' + chip + '">⚡ ' + st.drive.toFixed(1) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="player-score">' + sc.toFixed(1) + '</div>' +
+      '<div class="player-actions">' +
+        '<button class="btn btn-rate' + (iRated?' rated':'') + '" onclick="openRateModal(\'' + p.id + '\')">' + (iRated?'✅ 改分':'⭐ 打分') + '</button>' +
+        '<button class="btn btn-edit" onclick="openEdit(\'' + p.id + '\')">编辑</button>' +
+        '<button class="btn btn-danger" onclick="removePlayer(\'' + p.id + '\')">删除</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+//  UI 工具
+// ════════════════════════════════════════════════════════════
+window.updateRange = function(key) {
+  const v = document.getElementById('inp-' + key).value;
+  document.getElementById('val-' + key).textContent = v;
+};
+window.updateRangeById = function(targetId, val) {
+  document.getElementById(targetId).textContent = val;
+};
+
+function updateStatusBar() {
+  const n = myNickname || '未登录';
+  document.getElementById('status-name').textContent  = n;
+  document.getElementById('status-avatar').textContent = n[0] || '?';
+}
+function setConnState(state) {
+  isOnline = state === 'online';
+  document.getElementById('conn-dot').className = 'conn-dot ' + state;
+  document.getElementById('conn-label').textContent = { online:'已连接云端', offline:'离线模式', connecting:'连接中...' }[state] || '...';
+}
+function showLoading(text) { document.getElementById('loading-text').textContent = text||'处理中...'; document.getElementById('loading-overlay').classList.add('show'); }
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + (type||'success'); t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+function clearForm() {
+  ['inp-name','inp-height','inp-weight'].forEach(id => { document.getElementById(id).value = ''; });
+  ['shoot','run','rebound','drive'].forEach(k => { document.getElementById('inp-'+k).value = 3; document.getElementById('val-'+k).textContent = 3; });
+}
+window.closeModal = function(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'edit-modal') editingId = null;
+  if (id === 'rate-modal') { ratingPlayerId = null; ratingValues = {shoot:0,run:0,rebound:0,drive:0}; }
+};
+['edit-modal','rate-modal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) { if (e.target === this) window.closeModal(id); });
+});
+
+// ════════════════════════════════════════════════════════════
+//  昵称弹窗
+// ════════════════════════════════════════════════════════════
+window.openNicknameModal = function() { document.getElementById('nickname-modal').classList.add('open'); };
+window.saveNickname = function() {
+  const val = document.getElementById('nickname-input').value.trim();
+  if (!val || val.length < 2) { showToast('昵称至少2个字！', 'error'); return; }
+  myNickname = val;
+  myUserId   = val + '_' + Math.random().toString(36).slice(2,8);
+  localStorage.setItem('bbNickname', myNickname);
+  localStorage.setItem('bbUserId',   myUserId);
+  document.getElementById('nickname-modal').classList.remove('open');
+  updateStatusBar();
+  initApp();
+};
+
+// ════════════════════════════════════════════════════════════
+//  分队逻辑
+// ════════════════════════════════════════════════════════════
+window.selectMode = function(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('mode-' + mode).classList.add('selected');
+  document.getElementById('captain-panel').style.display      = mode === 'captain-random' ? 'block' : 'none';
+  document.getElementById('full-captain-panel').style.display = mode === 'captain'        ? 'block' : 'none';
+  if (mode === 'captain-random' || mode === 'captain') refreshCaptainSelects();
+  if (mode === 'captain') renderFullAssignment();
+};
+
+function refreshCaptainSelects() {
+  const opts = '<option value="">请选择</option>' + players.map(p =>
+    '<option value="' + p.id + '">' + p.name + ' (' + calcScore(p).toFixed(1) + '分)</option>'
+  ).join('');
+  ['cap-a','cap-b','cap-c'].forEach(id => {
+    const sel = document.getElementById(id);
+    const prev = sel.value; sel.innerHTML = opts; sel.value = prev;
+  });
+}
+
+function renderFullAssignment() {
+  document.getElementById('full-assignment-grid').innerHTML =
+    ['🔴 A队','🟢 B队','🟣 C队'].map((tn, ti) =>
+      '<div class="captain-slot">' +
+      '<p style="font-size:0.8rem;color:#f7b733;font-weight:700;margin-bottom:8px">' + tn + '</p>' +
+      [0,1,2].map(si =>
+        '<div style="margin-bottom:6px"><label style="font-size:0.7rem;color:#888">队员'+(si+1)+(si===0?' (队长)':'')+'</label>' +
+        '<select id="assign-'+ti+'-'+si+'" style="width:100%;padding:7px;border-radius:7px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.07);color:#fff;font-size:0.8rem;outline:none;margin-top:2px">' +
+        '<option value="">请选择</option>' +
+        players.map(p => '<option value="'+p.id+'">'+p.name+'</option>').join('') +
+        '</select></div>'
+      ).join('') + '</div>'
+    ).join('');
+}
+
+window.doSplit = function() {
+  if (players.length < 3) { showToast('至少需要3名球员！', 'error'); return; }
+  if (players.length !== 9 && !confirm('当前 ' + players.length + ' 名球员，将均分为3队，确定吗？')) return;
+  let teams;
+  try {
+    if (currentMode === 'balanced')       teams = splitBalanced();
+    else if (currentMode === 'random')    teams = splitRandom();
+    else if (currentMode === 'captain')   teams = splitCaptain();
+    else                                  teams = splitCaptainRandom();
+  } catch(e) { showToast(e.message, 'error'); return; }
+  splitResult = teams;
+  renderResult(teams);
+  switchTab('result');
+  showToast('🎉 分队完成！');
+};
+
+function splitBalanced() {
+  const sorted = [...players].sort((a,b) => calcScore(b)-calcScore(a));
+  const teams  = [[],[],[]];
+  const order  = [];
+  let i = 0, dir = 1;
+  while (order.length < sorted.length) {
+    order.push(i);
+    if (i === 2) dir = -1;
+    if (i === 0 && order.length > 1) dir = 1;
+    i += dir;
+  }
+  sorted.forEach((p,idx) => { if (idx < order.length) teams[order[idx]].push(p); });
+  return teams.map((m,i) => ({ name:['A队','B队','C队'][i], members:m, captain:m[0] }));
+}
+function splitRandom() {
+  const sh = [...players].sort(() => Math.random()-0.5);
+  const sz = Math.ceil(sh.length/3);
+  return [
+    { name:'A队', members:sh.slice(0,sz),    captain:sh[0] },
+    { name:'B队', members:sh.slice(sz,sz*2), captain:sh[sz] },
+    { name:'C队', members:sh.slice(sz*2),    captain:sh[sz*2] },
+  ];
+}
+function splitCaptainRandom() {
+  const capIds = ['cap-a','cap-b','cap-c'].map(id => document.getElementById(id).value);
+  if (capIds.some(v=>!v)) throw new Error('请为三支队伍各选一位队长！');
+  if (new Set(capIds).size < 3) throw new Error('三位队长不能是同一人！');
+  const caps = capIds.map(id => players.find(p=>p.id===id));
+  const rest = players.filter(p=>!capIds.includes(p.id)).sort(()=>Math.random()-0.5);
+  const teams = caps.map((c,i) => ({ name:['A队','B队','C队'][i], members:[c], captain:c }));
+  rest.forEach((p,i) => teams[i%3].members.push(p));
+  return teams;
+}
+function splitCaptain() {
+  const teams = ['A队','B队','C队'].map((name,ti) => {
+    const members = [0,1,2].map(si => {
+      const sel = document.getElementById('assign-'+ti+'-'+si);
+      return sel && sel.value ? players.find(p=>p.id===sel.value) : null;
+    }).filter(Boolean);
+    return { name, members, captain:members[0]||null };
+  });
+  const all = teams.flatMap(t=>t.members.map(m=>m.id));
+  if (new Set(all).size !== all.length) throw new Error('同一球员不能分配到多支队伍！');
+  if (teams.some(t=>t.members.length===0)) throw new Error('每支队伍至少需要一名队员！');
+  return teams;
+}
+
+// ════════════════════════════════════════════════════════════
+//  渲染分队结果
+// ════════════════════════════════════════════════════════════
+const STAT_KEYS   = ['shoot','run','rebound','drive'];
+const STAT_LABELS = { shoot:'投射', run:'跑动', rebound:'篮板', drive:'突破' };
+
+function teamTotalScore(members) { return members.reduce((s,m)=>s+calcScore(m),0); }
+function teamAvgStat(members,key){ if(!members.length)return 0; return members.reduce((s,m)=>s+effectiveStats(m)[key],0)/members.length; }
+
+function renderResult(teams) {
+  document.getElementById('result-empty').style.display   = 'none';
+  document.getElementById('result-content').style.display = 'block';
+
+  document.getElementById('teams-grid').innerHTML = teams.map((team,ti) => {
+    const total = teamTotalScore(team.members);
+    const membersHtml = team.members.map(m => {
+      const isCap = team.captain && team.captain.id === m.id;
+      return '<div class="team-member">' +
+        '<div class="member-avatar">' + m.name[0] + '</div>' +
+        '<div class="member-info">' +
+          '<div class="member-name">' + m.name + (isCap?' <span class="captain-badge">队长</span>':'') + '</div>' +
+          '<div class="member-role">' + (m.height?m.height+'cm · ':'') + (m.weight?m.weight+'kg':'') + '</div>' +
+        '</div>' +
+        '<div class="member-score">' + calcScore(m).toFixed(1) + '</div>' +
+      '</div>';
+    }).join('');
+    const statBars = STAT_KEYS.map(k => {
+      const avg = teamAvgStat(team.members,k);
+      return '<div class="stat-row"><span class="stat-label">' + STAT_LABELS[k] + '</span>' +
+        '<div class="stat-bar-bg"><div class="stat-bar-fill" style="width:' + ((avg/5)*100) + '%"></div></div>' +
+        '<span class="stat-num">' + avg.toFixed(1) + '</span></div>';
+    }).join('');
+    return '<div class="team-card"><div class="team-header"><div class="team-name">' +
+      ['🔴','🟢','🟣'][ti] + ' ' + team.name + '</div><div class="team-score">总分 ' + total.toFixed(1) + '</div></div>' +
+      membersHtml + '<div class="team-stats-bar">' + statBars + '</div></div>';
+  }).join('');
+
+  const scores  = teams.map(t=>teamTotalScore(t.members));
+  const avg     = scores.reduce((a,b)=>a+b,0)/scores.length;
+  const diff    = Math.max(...scores)-Math.min(...scores);
+  const balance = Math.max(0,100-(diff/avg*100)).toFixed(1);
+  document.getElementById('balance-info').innerHTML =
+    '<div class="balance-title">⚖️ 队伍均衡度分析</div>' +
+    '<div class="balance-meter">' +
+      '<div class="balance-item"><div class="bi-val">' + balance + '%</div><div class="bi-label">均衡指数</div></div>' +
+      '<div class="balance-item"><div class="bi-val">' + scores.map(s=>s.toFixed(1)).join(' / ') + '</div><div class="bi-label">各队总分</div></div>' +
+      '<div class="balance-item"><div class="bi-val">' + diff.toFixed(1) + '</div><div class="bi-label">最大差值</div></div>' +
+    '</div>';
+}
+</script>
+</body>
+</html>
