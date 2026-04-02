@@ -416,6 +416,79 @@
     }
     .setup-panel input[type="text"]:focus { border-color: #80c8ff; }
 
+    /* ══════════════════ Participant Panel ══════════════════ */
+    .participant-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px; flex-wrap: wrap; gap: 8px;
+    }
+    .participant-panel-header h3 {
+      font-size: 0.92rem; font-weight: 700; color: #f7b733; margin: 0;
+    }
+    .participant-actions { display: flex; gap: 6px; align-items: center; }
+    .participant-count-badge {
+      font-size: 0.8rem; color: #aaa; background: rgba(255,255,255,0.07);
+      padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .participant-list {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .participant-card {
+      display: flex; align-items: center; gap: 7px;
+      padding: 7px 11px; border-radius: 10px; cursor: pointer;
+      border: 1.5px solid rgba(255,255,255,0.09);
+      background: rgba(255,255,255,0.04); transition: all 0.18s;
+      user-select: none;
+    }
+    .participant-card:hover { border-color: rgba(247,183,51,0.4); background: rgba(247,183,51,0.06); }
+    .participant-card.selected {
+      border-color: #f7b733; background: rgba(247,183,51,0.12);
+    }
+    .participant-card.selected:hover { border-color: rgba(255,100,100,0.5); background: rgba(255,100,100,0.08); }
+    .participant-card .pc-check {
+      width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0;
+      border: 1.5px solid rgba(255,255,255,0.25); background: transparent;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; color: #f7b733; transition: all 0.15s;
+      pointer-events: none;
+    }
+    .participant-card.selected .pc-check {
+      background: #f7b733; border-color: #f7b733; color: #1a1a2e;
+    }
+    .participant-card .pc-name { font-size: 0.82rem; font-weight: 700; color: #e0e0e0; pointer-events: none; }
+    .participant-card .pc-score { font-size: 0.72rem; color: #888; pointer-events: none; }
+
+    /* ══════════════════ Team Count Panel ══════════════════ */
+    .team-count-panel { margin-bottom: 4px; }
+    .team-count-panel h3 {
+      font-size: 0.92rem; font-weight: 700; color: #f7b733; margin-bottom: 10px;
+    }
+    .team-count-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .tc-btn {
+      padding: 8px 18px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05); color: #aaa;
+      cursor: pointer; font-size: 0.88rem; font-weight: 700; transition: all 0.18s;
+    }
+    .tc-btn:hover { border-color: rgba(247,183,51,0.4); color: #e0e0e0; }
+    .tc-btn.selected {
+      border-color: #f7b733; background: rgba(247,183,51,0.14); color: #f7b733;
+      box-shadow: 0 0 12px rgba(247,183,51,0.15);
+    }
+    .team-size-tip {
+      font-size: 0.78rem; color: #777; padding: 6px 0;
+    }
+
+    /* ══════════════════ Extra team colors (4th, 5th) ══════════════════ */
+    .team-card:nth-child(4) { background: linear-gradient(135deg,rgba(99,179,237,.1),rgba(99,179,237,.05)); border-color: rgba(99,179,237,.28); }
+    .team-card:nth-child(5) { background: linear-gradient(135deg,rgba(252,211,77,.1),rgba(252,211,77,.05)); border-color: rgba(252,211,77,.28); }
+    .team-card:nth-child(4) .team-name { color: #63b3ed; }
+    .team-card:nth-child(5) .team-name { color: #fcd34d; }
+    .team-card:nth-child(4) .member-avatar { background: linear-gradient(135deg,#63b3ed,#2b6cb0); }
+    .team-card:nth-child(5) .member-avatar { background: linear-gradient(135deg,#fcd34d,#d97706); }
+    .team-card:nth-child(4) .member-score { color: #63b3ed; }
+    .team-card:nth-child(5) .member-score { color: #fcd34d; }
+    .team-card:nth-child(4) .stat-bar-fill { background: #63b3ed; }
+    .team-card:nth-child(5) .stat-bar-fill { background: #fcd34d; }
+
     /* ══════════════════ Responsive ══════════════════ */
     @media (max-width: 480px) {
       header h1 { font-size: 1.45rem; }
@@ -551,6 +624,33 @@
 
   <!-- ══════════ SPLIT TAB ══════════ -->
   <div id="tab-split" class="tab-panel">
+    <!-- 参赛球员选择 -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="participant-panel-header">
+        <h3>👥 本场参赛球员</h3>
+        <div class="participant-actions">
+          <span class="participant-count-badge" id="participant-count-badge">已选 0 / 0 人</span>
+          <button class="btn btn-secondary" style="padding:5px 12px;font-size:0.78rem" onclick="selectAllParticipants()">全选</button>
+          <button class="btn btn-secondary" style="padding:5px 12px;font-size:0.78rem" onclick="clearAllParticipants()">清空</button>
+        </div>
+      </div>
+      <div class="participant-list" id="participant-list"></div>
+    </div>
+
+    <!-- 分队数量选择 -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="team-count-panel">
+        <h3>⚔️ 分队数量</h3>
+        <div class="team-count-btns">
+          <button class="tc-btn" id="tc-2" onclick="selectTeamCount(2)">2 队</button>
+          <button class="tc-btn selected" id="tc-3" onclick="selectTeamCount(3)">3 队</button>
+          <button class="tc-btn" id="tc-4" onclick="selectTeamCount(4)">4 队</button>
+          <button class="tc-btn" id="tc-5" onclick="selectTeamCount(5)">5 队</button>
+        </div>
+        <div class="team-size-tip" id="team-size-tip">当前：已选 0 人，分为 3 队，每队约 0 人</div>
+      </div>
+    </div>
+
     <div class="card">
       <h2>🎯 选择分队方式</h2>
       <div class="mode-grid">
@@ -576,24 +676,11 @@
         </div>
       </div>
 
-      <!-- Captain-random: 3 captains -->
+      <!-- Captain-random: dynamic captains by teamCount -->
       <div id="captain-panel" class="captain-section" style="display:none">
         <div class="section-divider"></div>
         <p style="font-size:0.83rem;color:#f7b733;font-weight:700;margin-bottom:11px">👑 选择队长</p>
-        <div class="captain-select-grid">
-          <div class="captain-slot">
-            <label>🔴 A队队长</label>
-            <select id="cap-a"><option value="">请选择</option></select>
-          </div>
-          <div class="captain-slot">
-            <label>🟢 B队队长</label>
-            <select id="cap-b"><option value="">请选择</option></select>
-          </div>
-          <div class="captain-slot">
-            <label>🟣 C队队长</label>
-            <select id="cap-c"><option value="">请选择</option></select>
-          </div>
-        </div>
+        <div class="captain-select-grid" id="captain-select-grid"></div>
       </div>
 
       <!-- Full captain assignment -->
@@ -855,6 +942,11 @@ let myUserId       = '';
 let myNickname     = '';
 let isOnline       = false;
 let pollTimer      = null;
+// 新增：参赛球员与分队数量
+let selectedPlayerIds = new Set();   // 参与本次分队的球员 id
+let teamCount         = 3;           // 本次分队数量（2~5）
+const TEAM_NAMES  = ['A队','B队','C队','D队','E队'];
+const TEAM_EMOJIS = ['🔴','🟢','🟣','🔵','🟡'];
 
 // ════════════════════════════════════════════════════════════
 //  初始化
@@ -910,7 +1002,10 @@ window.switchTab = function(name) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   const panel = document.getElementById('tab-' + name);
   if (panel) panel.classList.add('active');
-  if (name === 'split') refreshCaptainSelects();
+  if (name === 'split') {
+    renderParticipantPanel();
+    if (currentMode === 'captain-random' || currentMode === 'captain') refreshCaptainSelects();
+  }
 };
 
 // ════════════════════════════════════════════════════════════
@@ -1317,6 +1412,11 @@ function calcScore(p) {
 function renderPlayers() {
   const list = document.getElementById('player-list');
   document.getElementById('player-count').textContent = players.length;
+  // 新球员自动加入参赛名单
+  players.forEach(p => { if (!selectedPlayerIds.has(p.id)) selectedPlayerIds.add(p.id); });
+  // 移除已不存在的球员
+  const existIds = new Set(players.map(p => p.id));
+  selectedPlayerIds.forEach(id => { if (!existIds.has(id)) selectedPlayerIds.delete(id); });
   if (players.length === 0) {
     list.innerHTML = '<div class="empty-state"><div class="emoji">🏀</div><p>还没有球员，添加球员或加载示例数据开始吧！</p></div>';
     return;
@@ -1407,6 +1507,76 @@ window.saveNickname = function() {
 };
 
 // ════════════════════════════════════════════════════════════
+//  参赛球员 & 分队数量
+// ════════════════════════════════════════════════════════════
+function renderParticipantPanel() {
+  const listEl  = document.getElementById('participant-list');
+  const badgeEl = document.getElementById('participant-count-badge');
+  if (!listEl) return;
+
+  // 同步：移除已不存在的球员（被删除的球员从参赛名单中清除）
+  const existIds = new Set(players.map(p => p.id));
+  selectedPlayerIds.forEach(id => { if (!existIds.has(id)) selectedPlayerIds.delete(id); });
+  // 注意：不在这里自动添加新球员，新球员在 renderPlayers() 中添加
+
+  if (players.length === 0) {
+    listEl.innerHTML = '<div style="font-size:0.82rem;color:#666;padding:8px">暂无球员，请先在「球员管理」添加球员</div>';
+    badgeEl.textContent = '已选 0 / 0 人';
+    updateTeamSizeTip();
+    return;
+  }
+
+  listEl.innerHTML = players.map(p => {
+    const sel = selectedPlayerIds.has(p.id);
+    return '<div class="participant-card' + (sel ? ' selected' : '') + '" onclick="toggleParticipant(\'' + p.id + '\')">' +
+      '<div class="pc-check">' + (sel ? '✓' : '') + '</div>' +
+      '<div>' +
+        '<div class="pc-name">' + p.name + '</div>' +
+        '<div class="pc-score">' + calcScore(p).toFixed(1) + '分</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  badgeEl.textContent = '已选 ' + selectedPlayerIds.size + ' / ' + players.length + ' 人';
+  updateTeamSizeTip();
+}
+
+window.toggleParticipant = function(id) {
+  if (selectedPlayerIds.has(id)) selectedPlayerIds.delete(id);
+  else selectedPlayerIds.add(id);
+  renderParticipantPanel();
+};
+
+window.selectAllParticipants = function() {
+  players.forEach(p => selectedPlayerIds.add(p.id));
+  renderParticipantPanel();
+};
+
+window.clearAllParticipants = function() {
+  selectedPlayerIds.clear();
+  renderParticipantPanel();
+};
+
+window.selectTeamCount = function(n) {
+  teamCount = n;
+  document.querySelectorAll('.tc-btn').forEach(b => b.classList.remove('selected'));
+  const btn = document.getElementById('tc-' + n);
+  if (btn) btn.classList.add('selected');
+  updateTeamSizeTip();
+  // 队长面板需要重新渲染
+  if (currentMode === 'captain-random' || currentMode === 'captain') refreshCaptainSelects();
+  if (currentMode === 'captain') renderFullAssignment();
+};
+
+function updateTeamSizeTip() {
+  const tip = document.getElementById('team-size-tip');
+  if (!tip) return;
+  const n = selectedPlayerIds.size;
+  const perTeam = n > 0 ? (n / teamCount).toFixed(1) : 0;
+  tip.textContent = '当前：已选 ' + n + ' 人，分为 ' + teamCount + ' 队，每队约 ' + perTeam + ' 人';
+}
+
+// ════════════════════════════════════════════════════════════
 //  分队逻辑
 // ════════════════════════════════════════════════════════════
 window.selectMode = function(mode) {
@@ -1419,40 +1589,63 @@ window.selectMode = function(mode) {
   if (mode === 'captain') renderFullAssignment();
 };
 
+function getActivePlayers() {
+  return players.filter(p => selectedPlayerIds.has(p.id));
+}
+
 function refreshCaptainSelects() {
-  const opts = '<option value="">请选择</option>' + players.map(p =>
+  const active = getActivePlayers();
+  const opts = '<option value="">请选择</option>' + active.map(p =>
     '<option value="' + p.id + '">' + p.name + ' (' + calcScore(p).toFixed(1) + '分)</option>'
   ).join('');
-  ['cap-a','cap-b','cap-c'].forEach(id => {
-    const sel = document.getElementById(id);
-    const prev = sel.value; sel.innerHTML = opts; sel.value = prev;
-  });
+
+  // 动态渲染队长选择面板
+  const grid = document.getElementById('captain-select-grid');
+  if (!grid) return;
+  grid.style.gridTemplateColumns = 'repeat(' + Math.min(teamCount, 3) + ', 1fr)';
+  grid.innerHTML = Array.from({length: teamCount}, (_, i) => {
+    const emoji = TEAM_EMOJIS[i];
+    const name  = TEAM_NAMES[i];
+    return '<div class="captain-slot">' +
+      '<label>' + emoji + ' ' + name + '队长</label>' +
+      '<select id="cap-' + i + '">' + opts + '</select>' +
+    '</div>';
+  }).join('');
 }
 
 function renderFullAssignment() {
+  const active = getActivePlayers();
+  const opts = active.map(p => '<option value="'+p.id+'">'+p.name+'</option>').join('');
+  // 每队最多显示 ceil(active/teamCount)+1 个槽位
+  const slots = Math.ceil(active.length / teamCount) + 1;
+
   document.getElementById('full-assignment-grid').innerHTML =
-    ['🔴 A队','🟢 B队','🟣 C队'].map((tn, ti) =>
-      '<div class="captain-slot">' +
-      '<p style="font-size:0.8rem;color:#f7b733;font-weight:700;margin-bottom:8px">' + tn + '</p>' +
-      [0,1,2].map(si =>
-        '<div style="margin-bottom:6px"><label style="font-size:0.7rem;color:#888">队员'+(si+1)+(si===0?' (队长)':'')+'</label>' +
-        '<select id="assign-'+ti+'-'+si+'" style="width:100%;padding:7px;border-radius:7px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.07);color:#fff;font-size:0.8rem;outline:none;margin-top:2px">' +
-        '<option value="">请选择</option>' +
-        players.map(p => '<option value="'+p.id+'">'+p.name+'</option>').join('') +
-        '</select></div>'
-      ).join('') + '</div>'
-    ).join('');
+    Array.from({length: teamCount}, (_, ti) => {
+      const emoji = TEAM_EMOJIS[ti];
+      const name  = TEAM_NAMES[ti];
+      return '<div class="captain-slot">' +
+        '<p style="font-size:0.8rem;color:#f7b733;font-weight:700;margin-bottom:8px">' + emoji + ' ' + name + '</p>' +
+        Array.from({length: slots}, (_, si) =>
+          '<div style="margin-bottom:6px"><label style="font-size:0.7rem;color:#888">队员'+(si+1)+(si===0?' (队长)':'')+'</label>' +
+          '<select id="assign-'+ti+'-'+si+'" style="width:100%;padding:7px;border-radius:7px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.07);color:#fff;font-size:0.8rem;outline:none;margin-top:2px">' +
+          '<option value="">请选择</option>' + opts +
+          '</select></div>'
+        ).join('') + '</div>';
+    }).join('');
 }
 
 window.doSplit = function() {
-  if (players.length < 3) { showToast('至少需要3名球员！', 'error'); return; }
-  if (players.length !== 9 && !confirm('当前 ' + players.length + ' 名球员，将均分为3队，确定吗？')) return;
+  const active = getActivePlayers();
+  if (active.length < teamCount) {
+    showToast('参赛人数（' + active.length + '）不足，至少需要 ' + teamCount + ' 人（每队1人）！', 'error');
+    return;
+  }
   let teams;
   try {
-    if (currentMode === 'balanced')       teams = splitBalanced();
-    else if (currentMode === 'random')    teams = splitRandom();
-    else if (currentMode === 'captain')   teams = splitCaptain();
-    else                                  teams = splitCaptainRandom();
+    if (currentMode === 'balanced')       teams = splitBalanced(active, teamCount);
+    else if (currentMode === 'random')    teams = splitRandom(active, teamCount);
+    else if (currentMode === 'captain')   teams = splitCaptain(active, teamCount);
+    else                                  teams = splitCaptainRandom(active, teamCount);
   } catch(e) { showToast(e.message, 'error'); return; }
   splitResult = teams;
   renderResult(teams);
@@ -1460,45 +1653,50 @@ window.doSplit = function() {
   showToast('🎉 分队完成！');
 };
 
-function splitBalanced() {
+function splitBalanced(active, n) {
   // 按能力总分降序排列
-  const sorted = [...players].sort((a,b) => calcScore(b)-calcScore(a));
-  const teams  = [[],[],[]];
-
-  // 标准蛇形分配：0,1,2,2,1,0,0,1,2,...
-  // 每轮6人：前3正序(0→1→2)，后3倒序(2→1→0)
+  const sorted = [...active].sort((a,b) => calcScore(b)-calcScore(a));
+  const teams  = Array.from({length: n}, () => []);
+  // 标准蛇形分配：每轮 n*2 个人，前n正序(0→n-1)，后n倒序(n-1→0)
   for (let idx = 0; idx < sorted.length; idx++) {
-    const posInCycle = idx % 6;
-    const col = posInCycle < 3 ? posInCycle : 5 - posInCycle;
+    const cycleLen   = n * 2;
+    const posInCycle = idx % cycleLen;
+    const col        = posInCycle < n ? posInCycle : cycleLen - 1 - posInCycle;
     teams[col].push(sorted[idx]);
   }
+  return teams.map((m,i) => ({ name: TEAM_NAMES[i], members: m, captain: m[0] }));
+}
 
-  return teams.map((m,i) => ({ name:['A队','B队','C队'][i], members:m, captain:m[0] }));
+function splitRandom(active, n) {
+  const sh = [...active].sort(() => Math.random()-0.5);
+  const teams = Array.from({length: n}, () => []);
+  sh.forEach((p, i) => teams[i % n].push(p));
+  return teams.map((m, i) => ({ name: TEAM_NAMES[i], members: m, captain: m[0] }));
 }
-function splitRandom() {
-  const sh = [...players].sort(() => Math.random()-0.5);
-  // 轮询分配保证每队人数差≤1
-  const t = [[],[],[]];
-  sh.forEach((p,i) => t[i%3].push(p));
-  return t.map((m,i) => ({ name:['A队','B队','C队'][i], members:m, captain:m[0] }));
-}
-function splitCaptainRandom() {
-  const capIds = ['cap-a','cap-b','cap-c'].map(id => document.getElementById(id).value);
-  if (capIds.some(v=>!v)) throw new Error('请为三支队伍各选一位队长！');
-  if (new Set(capIds).size < 3) throw new Error('三位队长不能是同一人！');
-  const caps = capIds.map(id => players.find(p=>p.id===id));
-  const rest = players.filter(p=>!capIds.includes(p.id)).sort(()=>Math.random()-0.5);
-  const teams = caps.map((c,i) => ({ name:['A队','B队','C队'][i], members:[c], captain:c }));
-  rest.forEach((p,i) => teams[i%3].members.push(p));
+
+function splitCaptainRandom(active, n) {
+  const capIds = Array.from({length: n}, (_, i) => {
+    const sel = document.getElementById('cap-' + i);
+    return sel ? sel.value : '';
+  });
+  if (capIds.some(v=>!v)) throw new Error('请为每支队伍各选一位队长！');
+  if (new Set(capIds).size < n) throw new Error('每位队长必须是不同球员！');
+  const caps = capIds.map(id => active.find(p=>p.id===id));
+  if (caps.some(c=>!c)) throw new Error('所选队长不在参赛名单中，请重新选择！');
+  const rest = active.filter(p=>!capIds.includes(p.id)).sort(()=>Math.random()-0.5);
+  const teams = caps.map((c,i) => ({ name: TEAM_NAMES[i], members:[c], captain:c }));
+  rest.forEach((p,i) => teams[i%n].members.push(p));
   return teams;
 }
-function splitCaptain() {
-  const teams = ['A队','B队','C队'].map((name,ti) => {
-    const members = [0,1,2].map(si => {
+
+function splitCaptain(active, n) {
+  const slots = Math.ceil(active.length / n) + 1;
+  const teams = Array.from({length: n}, (_, ti) => {
+    const members = Array.from({length: slots}, (_, si) => {
       const sel = document.getElementById('assign-'+ti+'-'+si);
-      return sel && sel.value ? players.find(p=>p.id===sel.value) : null;
+      return sel && sel.value ? active.find(p=>p.id===sel.value) : null;
     }).filter(Boolean);
-    return { name, members, captain:members[0]||null };
+    return { name: TEAM_NAMES[ti], members, captain: members[0]||null };
   });
   const all = teams.flatMap(t=>t.members.map(m=>m.id));
   if (new Set(all).size !== all.length) throw new Error('同一球员不能分配到多支队伍！');
@@ -1539,7 +1737,7 @@ function renderResult(teams) {
         '<span class="stat-num">' + avg.toFixed(1) + '</span></div>';
     }).join('');
     return '<div class="team-card"><div class="team-header"><div class="team-name">' +
-      ['🔴','🟢','🟣'][ti] + ' ' + team.name + '</div><div class="team-score">总分 ' + total.toFixed(1) + '</div></div>' +
+      TEAM_EMOJIS[ti] + ' ' + team.name + '</div><div class="team-score">总分 ' + total.toFixed(1) + '</div></div>' +
       membersHtml + '<div class="team-stats-bar">' + statBars + '</div></div>';
   }).join('');
 
